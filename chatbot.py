@@ -6,44 +6,36 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-# 📁 Configuration du dossier local pour les ressources NLTK
+# 📁 Configurer le dossier NLTK local
 nltk_data_dir = os.path.join(os.path.dirname(__file__), "nltk_data")
 os.makedirs(nltk_data_dir, exist_ok=True)
-nltk.data.path.insert(0, nltk_data_dir)  # Ajouter en tête
+nltk.data.path.insert(0, nltk_data_dir)
 
-# ⬇️ Téléchargement des ressources NLTK si non présentes
-nltk_resources = {
-    "punkt": "tokenizers/punkt",
-    "stopwords": "corpora/stopwords",
-    "wordnet": "corpora/wordnet"
-}
+# ⬇️ Télécharger les ressources nécessaires
+def download_nltk_resources():
+    resources = {
+        "punkt": "tokenizers/punkt",
+        "stopwords": "corpora/stopwords",
+        "wordnet": "corpora/wordnet"
+    }
+    for res, path in resources.items():
+        try:
+            nltk.data.find(path)
+        except LookupError:
+            nltk.download(res, download_dir=nltk_data_dir)
 
-for resource, path in nltk_resources.items():
-    try:
-        nltk.data.find(path)
-    except LookupError:
-        nltk.download(resource, download_dir=nltk_data_dir)
-
-# 📖 Chargement du fichier texte (assure-toi que ce fichier est bien présent dans ton repo)
-with open("pride_and_prejudice.txt", "r", encoding="utf-8") as file:
-    data = file.read().replace("\n", " ")
-
-# 🔤 Tokenisation des phrases
-sentences = sent_tokenize(data)
-
-# 🧹 Prétraitement
-lemmatizer = WordNetLemmatizer()
-stop_words = set(stopwords.words("english"))
-
-def preprocess(sentence):
+# 🧹 Fonction de prétraitement
+def preprocess(sentence, lemmatizer, stop_words):
     words = word_tokenize(sentence.lower())
-    return [lemmatizer.lemmatize(word) for word in words if word not in stop_words and word not in string.punctuation]
+    return [
+        lemmatizer.lemmatize(word)
+        for word in words
+        if word not in stop_words and word not in string.punctuation
+    ]
 
-preprocessed_sentences = [preprocess(sentence) for sentence in sentences]
-
-# 🔍 Fonction de similarité Jaccard
-def get_most_relevant_sentence(query):
-    query_tokens = preprocess(query)
+# 🔍 Recherche de la phrase la plus pertinente
+def get_most_relevant_sentence(query, sentences, preprocessed_sentences, lemmatizer, stop_words):
+    query_tokens = preprocess(query, lemmatizer, stop_words)
     max_similarity = 0
     best_sentence = "Sorry, I don't understand your question."
 
@@ -55,18 +47,32 @@ def get_most_relevant_sentence(query):
             if similarity > max_similarity:
                 max_similarity = similarity
                 best_sentence = sentences[i]
-
     return best_sentence
 
-# 🚀 App Streamlit
+# 🚀 Lancement de l'app
 def main():
     st.title("📚 Chatbot - Pride and Prejudice")
     st.write("Hello! I'm your chatbot trained on *Pride and Prejudice*. Ask me anything!")
 
-    user_input = st.text_input("You: ")
+    # 📥 Télécharger les ressources NLTK
+    download_nltk_resources()
 
+    # 🔧 Initialiser lemmatiseur et stopwords
+    lemmatizer = WordNetLemmatizer()
+    stop_words = set(stopwords.words("english"))
+
+    # 📄 Charger le texte du fichier
+    with open("pride_and_prejudice.txt", "r", encoding="utf-8") as file:
+        data = file.read().replace("\n", " ")
+
+    # ✂️ Tokenisation après que punkt est dispo
+    sentences = sent_tokenize(data)
+    preprocessed_sentences = [preprocess(s, lemmatizer, stop_words) for s in sentences]
+
+    # 💬 Interaction utilisateur
+    user_input = st.text_input("You:")
     if st.button("Submit") and user_input.strip():
-        response = get_most_relevant_sentence(user_input)
+        response = get_most_relevant_sentence(user_input, sentences, preprocessed_sentences, lemmatizer, stop_words)
         st.markdown(f"**Chatbot:** {response}")
 
 if __name__ == "__main__":
