@@ -1,56 +1,62 @@
 import nltk
+import streamlit as st
+import string
+from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 
-nltk.download('punkt_tab')
+# Télécharger les ressources nécessaires de NLTK
+nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
 
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.corpus import stopwords
-import string
-from nltk.stem import WordNetLemmatizer
-import streamlit as st
-
-
-with open("C:/Users/HP/Pictures/Camera Roll/doc formation/streamlit/.venv/chatbot/pride_and_prejudice.txt", "r", encoding='utf-8') as file:
+# Chargement du fichier texte (change le chemin selon ton fichier !)
+with open("pride_and_prejudice.txt", "r", encoding='utf-8') as file:
     data = file.read().replace('\n', ' ')
 
-
-
+# Tokenisation des phrases
 sentences = sent_tokenize(data)
 
+# Prétraitement de chaque phrase
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
+
 def preprocess(sentence):
-    words = word_tokenize(sentence)
-    words = [word.lower() for word in words if word.lower() not in stopwords.words('english') and word not in string.punctuation]
-    lemmatizer = WordNetLemmatizer()
-    words = [lemmatizer.lemmatize(word) for word in words]
+    words = word_tokenize(sentence.lower())
+    words = [lemmatizer.lemmatize(word) for word in words if word not in stop_words and word not in string.punctuation]
     return words
 
+# Prétraitement du corpus complet
+preprocessed_sentences = [preprocess(sentence) for sentence in sentences]
 
-vocab = [preprocess(sentence) for sentence in sentences]
-
-
-def similarity(query):
-    query = preprocess(query)
-
+# Fonction de similarité basée sur l’intersection Jaccard
+def get_most_relevant_sentence(query):
+    query_tokens = preprocess(query)
     max_similarity = 0
-    for sentence in vocab:
-        similarity = len(set(query).intersection(sentence)) / len(set(query).union(sentence))
-        if similarity > max_similarity:
-            max_similarity = similarity
-            relevant_sentence = ' '.join(sentence)
-    return relevant_sentence
+    best_sentence = "Sorry, I don't understand your question."
 
+    for i, sentence_tokens in enumerate(preprocessed_sentences):
+        union = set(query_tokens).union(set(sentence_tokens))
+        intersection = set(query_tokens).intersection(set(sentence_tokens))
+        if union:
+            similarity = len(intersection) / len(union)
+            if similarity > max_similarity:
+                max_similarity = similarity
+                best_sentence = sentences[i]  # Retourne la phrase originale (non prétraitée)
 
+    return best_sentence
+
+# Fonction principale Streamlit
 def main():
-    st.title('ChatBot')
-    st.write("Hello! I'm your chatbot. Ask me anything")
+    st.title("📚 Chatbot - Pride and Prejudice")
+    st.write("Hello! I'm your chatbot trained on *Pride and Prejudice*. Ask me anything!")
 
-    query = st.text_input('You: ')
-    if st.button('Submit'):
-        response = similarity(query)
-        st.write('Chatbot : ' + response)
+    user_input = st.text_input("You: ")
 
+    if st.button("Submit") and user_input.strip() != "":
+        response = get_most_relevant_sentence(user_input)
+        st.markdown(f"**Chatbot:** {response}")
 
-
+# Exécution
 if __name__ == "__main__":
     main()
