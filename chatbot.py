@@ -1,14 +1,20 @@
 import nltk
+import os
+
+# Définir un dossier local pour les ressources NLTK
+nltk_data_dir = os.path.join(os.path.dirname(__file__), 'nltk_data')
+os.makedirs(nltk_data_dir, exist_ok=True)
+nltk.data.path.append(nltk_data_dir)
+
+# Télécharger les ressources nécessaires dans ce dossier
+nltk.download('punkt', download_dir=nltk_data_dir)
+nltk.download('stopwords', download_dir=nltk_data_dir)
+nltk.download('wordnet', download_dir=nltk_data_dir)
 import streamlit as st
 import string
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-
-# Télécharger les ressources nécessaires de NLTK
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
 
 # Chargement du fichier texte (change le chemin selon ton fichier !)
 with open("pride_and_prejudice.txt", "r", encoding='utf-8') as file:
